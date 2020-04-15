@@ -77,7 +77,7 @@ def eval_fn(data_loader, model, device):
 
         fin_output_start.append(torch.sigmoid(o1).cpu().detach().numpy())
         fin_output_end.append(torch.sigmoid(o2).cpu().detach().numpy())
-        fin_padding_lens.extend(padding_len.cu().detach().numpy())
+        fin_padding_len.extend(padding_len.cpu().detach().numpy())
 
         fin_tweet_tokens.extend(tweet_tokens)
         fin_orig_sentiment.extend(orig_sentiment)
@@ -115,7 +115,7 @@ def eval_fn(data_loader, model, device):
         else:
             idx_start = 0
             idx_end = 0
-        for mj in rande(idx_start, idx_end + 1):
+        for mj in range(idx_start, idx_end + 1):
             mask[mj] = 1
 
         output_tokens = [x for p, x in enumerate(tweet_tokens.split()) if mask[p] == 1]
@@ -125,7 +125,7 @@ def eval_fn(data_loader, model, device):
         for ot in output_tokens:
             if ot.startswith('##'):
                 final_output = final_output + ot[2:]
-            elif len(ot) == 1 and ot in string.punctation:
+            elif len(ot) == 1 and ot in string.punctuation:
                 final_output = final_output + ot
             else:
                 final_output = final_output + ' ' + ot
