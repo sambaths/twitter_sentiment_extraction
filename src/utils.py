@@ -38,3 +38,52 @@ class AverageMeter:
         self.sum += val * n
         self.count += n
         self.avg = self.sum / self.count
+
+def calculate_jaccard_score(
+    original_tweet, 
+    target_string, 
+    sentiment_val, 
+    idx_start, 
+    idx_end, 
+    offsets,
+    verbose=False):
+
+    if idx_end < idx_start:
+        idx_end = idx_start
+    
+    filtered_output  = ""
+    for ix in range(idx_start, idx_end + 1):
+        filtered_output += original_tweet[offsets[ix][0]: offsets[ix][1]]
+        if (ix+1) < len(offsets) and offsets[ix][1] < offsets[ix+1][0]:
+            filtered_output += " "
+
+    if sentiment_val == "neutral" or len(original_tweet.split()) < 2:
+        filtered_output = original_tweet
+
+    jac1 = utils.jaccard(target_string.strip(), filtered_output.strip())
+    st1 = filtered_output
+
+
+    if idx_end < idx_start:
+        idx_start = idx_end
+    
+    filtered_output  = ""
+    for ix in range(idx_start, idx_end + 1):
+        filtered_output += original_tweet[offsets[ix][0]: offsets[ix][1]]
+        if (ix+1) < len(offsets) and offsets[ix][1] < offsets[ix+1][0]:
+            filtered_output += " "
+
+    if sentiment_val == "neutral" or len(original_tweet.split()) < 2:
+        filtered_output = original_tweet
+
+    jac2 = utils.jaccard(target_string.strip(), filtered_output.strip())
+    st2 = filtered_output
+
+    if jac1 > jac2:
+        jac = jac1
+        filtered_output = st1
+    else:
+        jac = jac2
+        filtered_output = st2
+    
+    return jac, filtered_output

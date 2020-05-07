@@ -3,7 +3,7 @@ import pandas as pd
 from sklearn import model_selection
 import dataset
 import torch
-from model import BERTBaseUncased
+from model import Roberta
 from transformers import AdamW
 import transformers.optimization
 import engine
@@ -11,18 +11,18 @@ import numpy as np
 import utils
 
 def run():
-    dfx = pd.read_csv(config.TRAINING_FILE).dropna().reset_index(drop=True)
+    dfx = pd.read_csv(config.TRAINING_FILE, nrows=config.NROWS).dropna().reset_index(drop=True)
     # dfx.sentiment = dfx.sentiment.apply(
     #     lambda x: 1 if x =='positive' else 0
     # )
-
+    print('Data Loaded')
     df_train, df_valid = model_selection.train_test_split(
         dfx,
-        test_size=0.1,
+        test_size=0.5,
         random_state=42,
         stratify=dfx.sentiment.values
     )
-
+    print('Data split into train data and validation data')
     df_train = df_train.reset_index(drop=True)
     df_valid = df_valid.reset_index(drop=True)
 
@@ -33,27 +33,34 @@ def run():
         selected_text= df_train.selected_text.values
     )
 
+    print('Train data preprocessed and made into Tweet Dataset Object')
+
     train_data_loader = torch.utils.data.DataLoader(
         train_dataset,
-        batch_size=config.TRAIN_BATCH_SIZE,
+        batch_size=config.TRAIN_BATCH_SIZE,shuffle=True,
         num_workers=4
     )
+
+    print('Train dataloader created')
     valid_dataset=dataset.TweetDataset(
         tweet=df_valid.text.values,
         sentiment=df_valid.sentiment.values,
         selected_text= df_valid.selected_text.values
     )
-
+    print('Valid data preprocessed and made into Tweet Dataset Object')
     valid_data_loader = torch.utils.data.DataLoader(
         valid_dataset,
         batch_size=config.VALID_BATCH_SIZE,
         num_workers=1
     )
+    print('Valid dataloader created')
+    device = config.DEVICE
+    conf = transformers.RobertaConfig.from_pretrained(f'{config.PATH}roberta-base-config.json')
+    conf.output_hidden_states = False
 
-    device = torch.device('cuda')
-
-    model = BERTBaseUncased()
+    model = Roberta(conf)
     model.to(device)
+    print('Model Object created')
 
     param_optimizer = list(model.named_parameters())
     no_decay = ['bias','LayerNorm.bias','LayerNorm.weight']
@@ -71,6 +78,7 @@ def run():
     )
 
     best_jaccard = 0
+    print('Starting Training....')
     for epoch in range(config.EPOCHS):
         engine.train_fn(train_data_loader,model, optimizer, device,scheduler)
         jaccard = engine.eval_fn(valid_data_loader,model, device)
